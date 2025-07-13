@@ -1,5 +1,5 @@
 // models/BookTable.js
-const mongoose = require('mongoose');
+/*const mongoose = require('mongoose');
 
 const BookTableSchema = new mongoose.Schema({
   name: String,
@@ -12,4 +12,18 @@ const BookTableSchema = new mongoose.Schema({
 
 const BookTableModel = mongoose.model('book_table', BookTableSchema);
 
-module.exports = BookTableModel;
+module.exports = BookTableModel;*/
+// models/BookTable.js
+const { DataTypes } = require('sequelize');
+const sequelize = require('../db');
+
+const BookTable = sequelize.define('book_table', {
+  name: DataTypes.STRING,
+  email: DataTypes.STRING,
+  phone: DataTypes.STRING,
+  guests: DataTypes.INTEGER,
+  date: DataTypes.STRING,
+  time: DataTypes.STRING,
+});
+
+module.exports = BookTable;

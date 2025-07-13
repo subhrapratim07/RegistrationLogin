@@ -70,7 +70,10 @@ const Home = () => {
               <h5 className="text-white fs-4 fw-normal">at the convenience of your home.</h5>
               <div className="mt-4 d-flex gap-3 flex-wrap">
                 <Link to="/Order" className="btn btn-secondary">ORDER NOW!</Link>
+                <Link to="/Item" className="btn btn-secondary">Add Iteam!</Link>
                 <Link to="/BookTable" className="btn btn-warning">BOOK TABLE!</Link>
+                <Link to="/DeliveryPersonForm" className="btn btn-warning">DeliveryPerson</Link>
+                
               </div>
             </div>
           </div>

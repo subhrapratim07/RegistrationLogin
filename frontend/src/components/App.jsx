@@ -8,6 +8,9 @@ import BookTable from './BookTable';
 import Footer from './Footer';
 import Nav from './Nav';
 import Menu from './Menu';
+import Order from './Order';
+import Item from './Item';
+import DeliveryPersonForm from './DeliveryPersonForm';
 
 function App() {
   return (
@@ -22,6 +25,9 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/menu" element={<Menu />} />
+        <Route path="/order"element={<Order/>}/>
+        <Route path="/item"element={<Item/>}/>
+        <Route path="/DeliveryPersonForm" element={<DeliveryPersonForm/>}/>
         <Route path="/book-table" element={<BookTable />} />
         <Route path="/BookTable" element={<Navigate to="/book-table" replace />} />
       </Routes>

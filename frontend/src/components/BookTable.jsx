@@ -140,7 +140,7 @@ const BookTable = () => {
   doc.text('********** THANK YOU! **********', 40, y + 42, { align: 'center' });
 
   doc.save('CRAVORY RESTAURANT-booking-slip.pdf');
-  setTimeout(() => navigate('/Home'), 4000);
+  setTimeout(() => navigate('/Home'), 2000);
 };
 
 
