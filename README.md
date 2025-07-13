@@ -15,9 +15,6 @@ Cravory is a full-stack restaurant management system built with React and Node.j
 - 📋 Add multiple menu items with auto-generated IDs and base64-encoded images
 - 🔎 View and manage order data
 
-## 📷 Demo
-
-![Cravory Order Form](https://user-images.githubusercontent.com/yourusername/cravory-screenshot.png)
 
 ## 🚀 Technologies Used
 
