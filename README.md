@@ -1,40 +1,50 @@
-# 🍽️ Cravory – Restaurant Booking & Payment Platform
+# 🍽️ Cravory - Restaurant Management Web App
 
-Cravory is a full-stack restaurant web application designed to streamline table booking and payment verification. With a clean UI and efficient backend, it offers users a seamless experience to book tables, submit payment proofs, and for admins to verify bookings effortlessly.
+Cravory is a full-stack restaurant management system built with React and Node.js using PostgreSQL as the database. It supports seamless user registration, menu item management, order placement, and PDF receipt generation with QR code.
 
-## 🌟 Features
+## 🔧 Features
 
-### 👨‍🍳 For Customers
-- Book tables online with personal and batch details
-- Upload payment proof via QR-based payment
-- Responsive and mobile-friendly interface
-- Instant booking confirmation slip download
+### 🧑 User
+- 🔐 User Registration and Login
+- 🧾 Place orders with item, quantity, and delivery details
+- 📦 Automatically fetches user info and order number
+- 📥 Download receipt as a printable PDF slip (with QR code)
+- 📃 View itemized order breakdown with prices and totals
 
-### 🛠️ For Admins
-- View all customer bookings in a dashboard
-- Verify payment proofs submitted by customers
-- Manage and monitor all bookings in real-time
+### 🧑‍🍳 Admin
+- 📋 Add multiple menu items with auto-generated IDs and base64-encoded images
+- 🔎 View and manage order data
 
-## 🧑‍💻 Technologies Used
+## 📷 Demo
 
-### Frontend:
-- **React.js** (Vite)
-- **React Router DOM**
-- **Styled Components** / **Bootstrap**
-- **AOS Animation**
-- **React Icons**, **React Spinners**
+![Cravory Order Form](https://user-images.githubusercontent.com/yourusername/cravory-screenshot.png)
 
-### Backend:
-- **Node.js**
-- **Express.js**
-- **Mongoose**
-- **MongoDB**
-- **Multer** (for file uploads)
-- **Cors**, **Dotenv**
+## 🚀 Technologies Used
 
-### Others:
-- **Chart.js** (optional for analytics)
-- **jsPDF** (for generating downloadable slips)
+| Frontend | Backend | Database | Other |
+|----------|---------|----------|-------|
+| React.js | Express.js | PostgreSQL | jsPDF (for receipts) |
+| Axios    | Sequelize |           | QRCode (for receipts) |
+| React-Router | CORS |           | Toastify (for alerts) |
 
 ## 📁 Folder Structure
 
+
+## 📦 Installation
+
+### 1. Clone the repository
+
+git clone https://github.com/yourusername/cravory.git
+cd cravory
+
+## 2. Backend Setup
+
+- cd backend
+- npm install
+- node index.js
+
+## 3. Frontend Setup
+
+- cd frontend
+- npm install
+- npm run dev
