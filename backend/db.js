@@ -1,10 +1,15 @@
-// db.js
 const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize('cravory', 'postgres', 'Subhra@1234', {
-  host: 'localhost', // or your PostgreSQL server URL
+const sequelize = new Sequelize('postgres', 'postgres.xquycdvpgkaritddpqwp', 'Subhra@1234', {
+  host: 'aws-0-ap-southeast-1.pooler.supabase.com',
+  port: 5432,
   dialect: 'postgres',
-  port: 40000,
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
+  },
 });
 
 module.exports = sequelize;

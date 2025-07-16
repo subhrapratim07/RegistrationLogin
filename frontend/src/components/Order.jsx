@@ -120,11 +120,20 @@ const Order = () => {
  const handleDownloadSlip = async () => {
   if (!receiptData) return;
 
-  const docHeight = 100 + receiptData.items.length * 10 + 40; // ⬅️ extra 40 for QR & Thank You
+  const docHeight = 100 + receiptData.items.length * 10 + 40;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, docHeight] });
 
-  let y = 10;
+  // Load logo image
+  const logoImg = new Image();
+  logoImg.src = '/logo.png';
+  await new Promise(resolve => {
+    logoImg.onload = resolve;
+  });
 
+  let y = 20;
+  doc.addImage(logoImg, 'PNG', 30, 1, 20, 20); // Centered Logo
+
+  // Header
   doc.setFont('courier', 'bold');
   doc.setFontSize(12);
   doc.text('CRAVORY RESTAURANT', 40, y, { align: 'center' });
@@ -136,28 +145,49 @@ const Order = () => {
 
   y += 4;
   doc.text('------------------------------', 40, y, { align: 'center' });
-
   y += 6;
-  const info = [
-    ['Order No', receiptData.orderNumber],
-    ['Date', receiptData.orderDate],
-    ['Name', receiptData.name],
-    ['Address', receiptData.address],
-    ['Pincode', receiptData.pincode]
-  ];
 
-  info.forEach(([label, value]) => {
-    doc.text(`${label}:`, 5, y);
-    doc.text(`${value}`, 75, y, { align: 'right' });
+  // Order No
+  doc.text('Order No:', 5, y);
+  doc.text(receiptData.orderNumber, 75, y, { align: 'right' });
+  y += 5;
+
+  // Date
+  doc.text('Date:', 5, y);
+  doc.text(receiptData.orderDate, 75, y, { align: 'right' });
+  y += 7; // Extra space between date and name
+
+  // Name
+  doc.text('Name:', 5, y);
+  doc.text(receiptData.name, 75, y, { align: 'right' });
+  y += 5;
+
+  // Address (wrapped)
+  const addressLabel = 'Address:';
+  const addressX = 5;
+  const addressTextX = 23;
+  const maxAddressWidth = 50;
+
+  doc.text(addressLabel, addressX, y);
+  const addressLines = doc.splitTextToSize(receiptData.address, maxAddressWidth);
+  addressLines.forEach((line, index) => {
+    doc.text(line, addressTextX, y);
     y += 5;
   });
 
+  // Pincode
+  doc.text('Pincode:', 5, y);
+  doc.text(receiptData.pincode, 75, y, { align: 'right' });
+  y += 5;
+
+  // Item Table Header
   y += 4;
   doc.setFont('courier', 'bold');
   doc.text('Item          Qty   Price   Total', 5, y);
   doc.setFont('courier', 'normal');
   y += 4;
 
+  // Item Details
   let grandTotal = 0;
 
   for (const itemObj of receiptData.items) {
@@ -172,32 +202,35 @@ const Order = () => {
     const priceStr = price.toFixed(2).padStart(7, ' ');
     const totalStr = total.toFixed(2).padStart(7, ' ');
 
-    doc.text(`${itemName}${qtyStr} ${priceStr} ${totalStr}`, 0 , y);
+    doc.text(`${itemName}${qtyStr} ${priceStr} ${totalStr}`, 3, y);
     y += 5;
   }
 
+  // Divider & Grand Total
   y += 2;
   doc.text('------------------------------', 40, y, { align: 'center' });
   y += 6;
 
   doc.setFont('courier', 'bold');
-  doc.setFontSize(8); // Slightly smaller
-  doc.text(`Grand Total:INR ${grandTotal.toFixed(2)}`, 40, y, { align: 'center' }); // ⬅️ fixed spacing
+  doc.setFontSize(8);
+  doc.text(`Grand Total: INR ${grandTotal.toFixed(2)}`, 40, y, { align: 'center' });
 
+  // QR Code
   y += 8;
-
   const qrText = `Order# ${receiptData.orderNumber}\nName: ${receiptData.name}`;
   const qrData = await QRCode.toDataURL(qrText);
   doc.addImage(qrData, 'PNG', 25, y, 30, 30);
-
   y += 35;
+
+  // Thank you
   doc.setFontSize(10);
   doc.setFont('courier', 'bold');
   doc.text('THANK YOU!', 40, y, { align: 'center' });
 
   doc.save(`Order-${receiptData.orderNumber}.pdf`);
-  setTimeout(() => navigate('/Home'), 2000);
+  // setTimeout(() => navigate('/Home'), 2000);
 };
+
 
 
   return (
