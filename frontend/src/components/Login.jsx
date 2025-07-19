@@ -20,29 +20,19 @@ const Login = () => {
         if (result.data === "Success") {
           toast.success('Login successful!');
           localStorage.setItem('userEmail', email);
-              setTimeout(() => {
-          navigate('/Home');
-        }, 3000);
-        } else {
-          toast.error('Incorrect password or user not found!');
+          setTimeout(() => {
+            navigate('/Home');
+          }, 3000);
         }
       })
-     .catch((error) => {
-  console.error("Error from server:", error); // Already present
-  if (error.response) {
-    // Server responded with a status other than 2xx
-    console.log("Response data:", error.response.data);
-    console.log("Response status:", error.response.status);
-    console.log("Response headers:", error.response.headers);
-  } else if (error.request) {
-    // No response received
-    console.log("Request made but no response:", error.request);
-  } else {
-    // Something else caused the error
-    console.log("Error message:", error.message);
-  }
-});
-
+      .catch((error) => {
+        if (error.response && error.response.status === 401) {
+          toast.error('Incorrect password or user not found!');
+        } else {
+          toast.error('Something went wrong. Please try again later.');
+          console.error("Login error:", error);
+        }
+      });
   };
 
   return (

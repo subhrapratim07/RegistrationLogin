@@ -21,7 +21,13 @@ const getOrdersByDateRange = async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT * FROM orders WHERE "orderDate" BETWEEN $1 AND $2`,
+      `SELECT 
+      *
+      FROM orders o
+      JOIN order_items i ON o.orderid = i.orderid
+      WHERE o."orderDate" BETWEEN $1 AND $2
+      ORDER BY o.orderid;`,
+      
       [startDate, endDate]
     );
     res.json(result.rows);
