@@ -15,7 +15,7 @@ const Login = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    axios.post('http://localhost:40001/login', { email, password })
+    axios.post('http://localhost:500/login', { email, password })
       .then(result => {
         if (result.data === "Success") {
           toast.success('Login successful!');
@@ -27,7 +27,22 @@ const Login = () => {
           toast.error('Incorrect password or user not found!');
         }
       })
-      .catch(() => toast.error('Server error. Please try again later.'));
+     .catch((error) => {
+  console.error("Error from server:", error); // Already present
+  if (error.response) {
+    // Server responded with a status other than 2xx
+    console.log("Response data:", error.response.data);
+    console.log("Response status:", error.response.status);
+    console.log("Response headers:", error.response.headers);
+  } else if (error.request) {
+    // No response received
+    console.log("Request made but no response:", error.request);
+  } else {
+    // Something else caused the error
+    console.log("Error message:", error.message);
+  }
+});
+
   };
 
   return (

@@ -1,0 +1,34 @@
+const pool = require('../db');
+
+// Orders grouped by pincode
+const getOrdersByPincode = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT pincode, COUNT(*)::int AS "orderCount"
+      FROM orders
+      GROUP BY pincode
+      ORDER BY "orderCount" DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching orders by pincode:', err.message);
+    res.status(500).json({ error: 'Failed to fetch orders by pincode' });
+  }
+};
+
+const getOrdersByDateRange = async (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM orders WHERE "orderDate" BETWEEN $1 AND $2`,
+      [startDate, endDate]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching orders by date:', err.message);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+};
+
+module.exports = { getOrdersByPincode, getOrdersByDateRange };

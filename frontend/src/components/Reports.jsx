@@ -1,0 +1,107 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+
+const Reports = () => {
+  const [ordersByPincode, setOrdersByPincode] = useState([]);
+  const [selectedOrders, setSelectedOrders] = useState([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const fetchOrdersByPincode = async () => {
+    try {
+      const response = await axios.get('http://localhost:500/api/reports/orders-by-pincode');
+      setOrdersByPincode(response.data);
+    } catch (error) {
+      console.error('Error loading pincode data:', error);
+    }
+  };
+
+  const fetchOrdersByDateRange = async () => {
+    try {
+      if (!startDate || !endDate) {
+        alert('Please select both start and end date.');
+        return;
+      }
+
+      const formattedStart = new Date(startDate).toISOString().split('T')[0];
+      const formattedEnd = new Date(endDate).toISOString().split('T')[0];
+
+      const response = await axios.get(
+        `http://localhost:500/api/reports/orders-by-date?startDate=${formattedStart}&endDate=${formattedEnd}`
+      );
+      setSelectedOrders(response.data);
+    } catch (error) {
+      console.error('Error loading orders by date range:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrdersByPincode();
+  }, []);
+
+  return (
+    <div className="p-6 w-full max-w-6xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Orders by Pincode</h2>
+
+      {ordersByPincode.length === 0 ? (
+        <p>No data available.</p>
+      ) : (
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={ordersByPincode}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="pincode" />
+            <YAxis allowDecimals={false} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="orderCount" fill="#82ca9d" />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+
+      <div className="mt-8">
+        <h3 className="text-xl font-semibold mb-2">Date Range Filter</h3>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="border p-2 mr-2"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="border p-2 mr-2"
+        />
+        <button
+          onClick={fetchOrdersByDateRange}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Get Report
+        </button>
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-xl font-semibold mb-2">Orders in Selected Date Range:</h3>
+        {selectedOrders.length === 0 ? (
+          <p>No orders in selected date range.</p>
+        ) : (
+          <ul className="list-disc list-inside">
+            {selectedOrders.map((order) => (
+              <li key={order.orderid}>
+                <strong>Order ID:</strong> {order.orderid}, 
+                <strong> Date:</strong> {new Date(order.orderDate).toLocaleDateString('en-CA')}, 
+                <strong> Name:</strong> {order.name}, 
+                <strong> Pincode:</strong> {order.pincode}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Reports;

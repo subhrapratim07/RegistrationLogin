@@ -1,15 +1,21 @@
-const { Sequelize } = require('sequelize');
+const { Pool } = require('pg');
 
-const sequelize = new Sequelize('postgres', 'postgres.xquycdvpgkaritddpqwp', 'Subhra@1234', {
+const pool = new Pool({
+  user: 'postgres.xquycdvpgkaritddpqwp',
   host: 'aws-0-ap-southeast-1.pooler.supabase.com',
+  database: 'postgres',
+  password: 'Subhra@1234',
   port: 5432,
-  dialect: 'postgres',
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false,
-    },
-  },
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-module.exports = sequelize;
+pool.connect()
+  .then(() => console.log('✅ PostgreSQL connected successfully!'))
+  .catch(err => {
+    console.error('❌ PostgreSQL connection error:', err.message);
+    process.exit(1);
+  });
+
+module.exports = pool;

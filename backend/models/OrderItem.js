@@ -1,22 +1,11 @@
 // models/OrderItem.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
-const Order = require('./Order');
+const pool = require('../db');
 
-const OrderItem = sequelize.define('order_items', {
-  item: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  quantity: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1,
-  },
-});
-
-// Set associations
-Order.hasMany(OrderItem, { foreignKey: 'orderId', onDelete: 'CASCADE' });
-OrderItem.belongsTo(Order, { foreignKey: 'orderId' });
-
-module.exports = OrderItem;
+module.exports = {
+  async create(orderId, item, quantity, price) {
+    return await pool.query(
+      'INSERT INTO order_items(item, quantity, price, "orderId") VALUES($1, $2, $3, $4)',
+      [item, quantity, price, orderId]
+    );
+  }
+};

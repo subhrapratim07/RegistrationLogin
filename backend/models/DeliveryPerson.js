@@ -1,32 +1,17 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
+// models/DeliveryPerson.js
+const pool = require('../db');
 
-const DeliveryPerson = sequelize.define('deliverypersons', {
-  DeliveryPerson_ID: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
+module.exports = {
+  async create({ name, phone }) {
+    const result = await pool.query(
+      'INSERT INTO delivery_persons(name, phone) VALUES($1, $2) RETURNING *',
+      [name, phone]
+    );
+    return result.rows[0];
   },
-  Name: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  Phone: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  Gender: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  Vehicle_No: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  AreaCode: {
-    type: DataTypes.STRING,
-    allowNull: false
+
+  async findAll() {
+    const result = await pool.query('SELECT * FROM delivery_persons');
+    return result.rows;
   }
-});
-
-module.exports = DeliveryPerson;
+};

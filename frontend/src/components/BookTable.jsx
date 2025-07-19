@@ -39,7 +39,7 @@ const BookTable = () => {
       return;
     }
 
-    axios.get(`http://localhost:40001/user-info/${userEmail}`)
+    axios.get(`http://localhost:5000/user-info/${userEmail}`)
       .then(res => setFormData(prev => ({ ...prev, ...res.data })))
       .catch(() => {
         localStorage.removeItem('userEmail');
@@ -56,7 +56,7 @@ const BookTable = () => {
     // Save before resetting
     const snapshot = { ...formData };
 
-    axios.post('http://localhost:40001/book-table', formData)
+    axios.post('http://localhost:5000/book-table', formData)
       .then(res => {
         toast.success(res.data.message || "Booking Successful!");
         

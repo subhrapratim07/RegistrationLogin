@@ -1,22 +1,17 @@
 // models/Order.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
+const pool = require('../db');
 
-const Order = sequelize.define('orders', {
-  orderNumber: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
+module.exports = {
+  async getLastOrderNumber() {
+    const result = await pool.query('SELECT "orderNumber" FROM orders ORDER BY "createdAt" DESC LIMIT 1');
+    return result.rows[0];
   },
-  orderDate: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  name: DataTypes.STRING,
 
-  address: DataTypes.TEXT,
-  pincode: DataTypes.STRING,
-  deliveryperson: DataTypes.STRING,
-});
-
-module.exports = Order;
+  async create({ orderNumber, orderDate, name, address, pincode, deliveryperson }) {
+    const result = await pool.query(
+      'INSERT INTO orders("orderNumber", "orderDate", name, address, pincode, deliveryperson) VALUES($1, $2, $3, $4, $5, $6) RETURNING id',
+      [orderNumber, orderDate, name, address, pincode, deliveryperson]
+    );
+    return result.rows[0];
+  }
+};

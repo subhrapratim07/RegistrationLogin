@@ -56,7 +56,7 @@ const Item = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    axios.post('http://localhost:40001/add-item', { items })
+    axios.post('http://localhost:500/items', { items })
       .then(res => {
         toast.success(res.data.message || 'Items added successfully!');
         setItems([

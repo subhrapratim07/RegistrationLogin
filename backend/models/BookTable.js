@@ -1,29 +1,12 @@
 // models/BookTable.js
-/*const mongoose = require('mongoose');
+const pool = require('../db');
 
-const BookTableSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  phone: String,
-  guests: Number,
-  date: String,
-  time: String,
-});
-
-const BookTableModel = mongoose.model('book_table', BookTableSchema);
-
-module.exports = BookTableModel;*/
-// models/BookTable.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
-
-const BookTable = sequelize.define('book_table', {
-  name: DataTypes.STRING,
-  email: DataTypes.STRING,
-  phone: DataTypes.STRING,
-  guests: DataTypes.INTEGER,
-  date: DataTypes.STRING,
-  time: DataTypes.STRING,
-});
-
-module.exports = BookTable;
+module.exports = {
+  async create({ name, email, date, time, guests }) {
+    const result = await pool.query(
+      'INSERT INTO book_tables(name, email, date, time, guests) VALUES($1, $2, $3, $4, $5) RETURNING *',
+      [name, email, date, time, guests]
+    );
+    return result.rows[0];
+  }
+};

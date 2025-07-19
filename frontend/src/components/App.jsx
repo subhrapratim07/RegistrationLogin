@@ -10,6 +10,7 @@ import Nav from './Nav';
 import Menu from './Menu';
 import Order from './Order';
 import Item from './Item';
+import Reports from './Reports';
 import DeliveryPersonForm from './DeliveryPersonForm';
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         <Route path="/menu" element={<Menu />} />
         <Route path="/order"element={<Order/>}/>
         <Route path="/item"element={<Item/>}/>
+        <Route path="/reports" element={<Reports />} />
         <Route path="/DeliveryPersonForm" element={<DeliveryPersonForm/>}/>
         <Route path="/book-table" element={<BookTable />} />
         <Route path="/BookTable" element={<Navigate to="/book-table" replace />} />

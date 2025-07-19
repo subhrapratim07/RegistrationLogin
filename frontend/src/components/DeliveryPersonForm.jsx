@@ -31,7 +31,7 @@ const DeliveryPersonForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:40001/add-delivery-person', formData)
+    axios.post('http://localhost:500/delivery_persons', formData)
       .then(res => {
         toast.success(res.data.message);
         setFormData({
