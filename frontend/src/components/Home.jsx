@@ -71,8 +71,8 @@ const Home = () => {
               <div className="mt-4 d-flex gap-3 flex-wrap">
                 <Link to="/Order" className="btn btn-secondary">ORDER NOW!</Link>
                 <Link to="/Item" className="btn btn-secondary">Add Iteam!</Link>
-                <Link to="/Reports" className="btn btn-warning">REPORTS!</Link>
-                <Link to="/DeliveryPersonForm" className="btn btn-warning">DeliveryPerson</Link>
+                <Link to="/Reports" className="btn btn-secondary">REPORTS!</Link>
+                <Link to="/DeliveryPersonForm" className="btn btn-outline-warning">DeliveryPerson</Link>
                 
               </div>
             </div>

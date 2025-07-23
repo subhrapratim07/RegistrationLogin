@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Label ,ResponsiveContainer
 } from 'recharts';
 
 const Reports = () => {
@@ -49,16 +49,30 @@ const Reports = () => {
       {ordersByPincode.length === 0 ? (
         <p>No data available.</p>
       ) : (
+        
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={ordersByPincode}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="pincode" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="orderCount" fill="#82ca9d" />
-          </BarChart>
-        </ResponsiveContainer>
+  <BarChart data={ordersByPincode} margin={{ top: 20, right: 20, left: 20, bottom: 50 }}>
+    
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis dataKey="pincode">
+      <Label value="Pincode" offset={-10} position="insideBottom" />
+    </XAxis>
+    <YAxis allowDecimals={false}>
+      <Label
+        value="Order Count"
+        angle={-90}
+        position="insideLeft"
+        style={{ textAnchor: 'middle' }}
+      />
+    </YAxis>
+    <Tooltip />
+    <Legend verticalAlign="top" height={2} /> {/* This moves the legend to bottom */}
+    <Bar dataKey="orderCount" fill="#82ca9d" label={{ position: 'top' }} />
+    
+  </BarChart>
+</ResponsiveContainer>
+
+
       )}
 
       <div className="mt-8">
