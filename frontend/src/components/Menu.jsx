@@ -16,19 +16,39 @@ import iconUrl from "leaflet/dist/images/marker-icon.png";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
 import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl,
-  iconUrl,
-  shadowUrl,
+// Define custom default icon
+const defaultIcon = new L.Icon({
+  iconUrl: iconUrl,
+  iconRetinaUrl: iconRetinaUrl,
+  shadowUrl: shadowUrl,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
 });
 
-const LocationPicker = ({ position, setPosition }) => {
+const LocationPicker = ({ position, setPosition, setFormData }) => {
   useMapEvents({
     click(e) {
-      setPosition([e.latlng.lat, e.latlng.lng]);
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      setPosition([lat, lng]);
+
+      // Fetch reverse geocode on click
+      axios
+        .get(`https://nominatim.openstreetmap.org/reverse`, {
+          params: { lat, lon: lng, format: "json" },
+        })
+        .then((res) => {
+          setFormData((prev) => ({
+            ...prev,
+            address: res.data.display_name || "",
+            pincode: res.data.address?.postcode || prev.pincode,
+          }));
+        })
+        .catch(() => {});
     },
   });
-  return position ? <Marker position={position}></Marker> : null;
+
+  return position ? <Marker position={position} icon={defaultIcon}></Marker> : null;
 };
 
 const Menu = () => {
@@ -82,7 +102,6 @@ const Menu = () => {
       }
       return [...prev, { ...item, quantity: qty }];
     });
-    
   };
 
   const removeFromCart = (id) => {
@@ -349,7 +368,7 @@ const Menu = () => {
 
             <MapContainer center={position || [22.5726, 88.3639]} zoom={13} style={{ height: "300px", marginBottom: "10px" }}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <LocationPicker position={position} setPosition={setPosition} />
+              <LocationPicker position={position} setPosition={setPosition} setFormData={setFormData} />
             </MapContainer>
 
             <h5>Order Summary</h5>
