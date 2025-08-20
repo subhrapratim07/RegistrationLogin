@@ -104,31 +104,31 @@ const Reports = () => {
         ) : (
           <table className="min-w-full table-auto border border-gray-300">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="px-4 py-2 border">Order ID</th>
-                <th className="px-4 py-2 border">Name</th>
-                <th className="px-4 py-2 border">Date</th>
-                <th className="px-4 py-2 border">Pincode</th>
-                <th className="px-4 py-2 border">DeliveryPerson</th>
-                <th className="px-4 py-2 border">Item</th>
-                <th className="px-4 py-2 border">Qty</th>
-                <th className="px-4 py-2 border">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selectedOrders.map((order, index) => (
-                <tr key={index} className="border-t">
-                  <td className="px-4 py-2 border">{order.orderid}</td>
-                  <td className="px-4 py-2 border">{order.name}</td>
-                  <td className="px-4 py-2 border">{new Date(order.orderDate).toLocaleDateString('en-CA')}</td>
-                  <td className="px-4 py-2 border">{order.pincode}</td>
-                  <td className="px-4 py-2 border">{order.deliveryperson}</td>
-                  <td className="px-4 py-2 border">{order.itemname}</td>
-                  <td className="px-4 py-2 border">{order.quantity}</td>
-                  <td className="px-4 py-2 border">₹{order.price}</td>
-                </tr>
-              ))}
-            </tbody>
+  <tr className="bg-gray-100">
+    <th className="px-4 py-2 border">Order ID</th>
+    <th className="px-4 py-2 border">Name</th>
+    <th className="px-4 py-2 border">Date</th>
+    <th className="px-4 py-2 border">Pincode</th>
+    <th className="px-4 py-2 border">Delivery Person</th>
+    <th className="px-4 py-2 border">Items</th>
+    <th className="px-4 py-2 border">Total Price</th>
+  </tr>
+</thead>
+      <tbody>
+  {selectedOrders.map((order, index) => (
+    <tr key={index} className="border-t">
+      <td className="px-4 py-2 border">{order.orderid}</td>
+      <td className="px-4 py-2 border">{order.name}</td>
+      <td className="px-4 py-2 border">
+        {new Date(order.orderDate).toLocaleDateString('en-CA')}
+      </td>
+      <td className="px-4 py-2 border">{order.pincode}</td>
+      <td className="px-4 py-2 border">{order.deliveryperson}</td>
+      <td className="px-4 py-2 border">{order.items}</td>
+      <td className="px-4 py-2 border">{order.total_price}</td>
+    </tr>
+  ))}
+</tbody>
           </table>
         )}
       </div>

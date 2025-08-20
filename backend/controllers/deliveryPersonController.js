@@ -1,14 +1,8 @@
 const pool = require('../db');
 
+// Add new delivery person
 const addDeliveryPerson = async (req, res) => {
-  const {
-    DeliveryPerson_ID,
-    Name,
-    Phone,
-    Gender,
-    Vehicle_No,
-    AreaCode
-  } = req.body;
+  const { DeliveryPerson_ID, Name, Phone, Gender, Vehicle_No, AreaCode } = req.body;
 
   if (!DeliveryPerson_ID || !Name || !Phone || !Gender || !Vehicle_No || !AreaCode) {
     return res.status(400).json({ message: 'Please fill all the required fields' });
@@ -28,9 +22,10 @@ const addDeliveryPerson = async (req, res) => {
   }
 };
 
+// Get all delivery persons
 const getAllDeliveryPersons = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM delivery_persons');
+    const result = await pool.query('SELECT * FROM delivery_persons ORDER BY "Name"');
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching delivery persons:', err.message);

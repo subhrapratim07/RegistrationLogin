@@ -1,12 +1,11 @@
-// routes/deliveryPersonRoutes.js
 const express = require('express');
 const router = express.Router();
-const {
-  addDeliveryPerson,
-  getAllDeliveryPersons
-} = require('../controllers/deliveryPersonController');
+const deliveryPersonController = require('../controllers/deliveryPersonController');
 
-router.post('/', addDeliveryPerson);
-router.get('/', getAllDeliveryPersons);
+// Get all delivery persons
+router.get('/', deliveryPersonController.getAllDeliveryPersons);
+
+// Add delivery person
+router.post('/', deliveryPersonController.addDeliveryPerson);
 
 module.exports = router;

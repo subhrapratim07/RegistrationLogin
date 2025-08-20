@@ -22,11 +22,18 @@ const getOrdersByDateRange = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT 
-      *
-      FROM orders o
-      JOIN order_items i ON o.orderid = i.orderid
-      WHERE o."orderDate" BETWEEN $1 AND $2
-      ORDER BY o.orderid;`,
+    o.orderid, 
+    o.name, 
+    o."orderDate",
+    o.pincode,
+    o.deliveryperson,
+    string_agg(i."itemname" || ' (' || i.quantity || ')', ', ') AS items,
+    SUM(i.price * i.quantity) AS total_price
+FROM orders o
+JOIN order_items i ON o.orderid = i.orderid
+WHERE o."orderDate" BETWEEN $1 AND $2
+GROUP BY o.orderid, o.name, o."orderDate", o.pincode, o.deliveryperson
+ORDER BY o.orderid;`,
       
       [startDate, endDate]
     );
@@ -35,6 +42,7 @@ const getOrdersByDateRange = async (req, res) => {
     console.error('Error fetching orders by date:', err.message);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
+ 
 };
 
 module.exports = { getOrdersByPincode, getOrdersByDateRange };

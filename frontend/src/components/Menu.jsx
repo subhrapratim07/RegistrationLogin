@@ -1,95 +1,388 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { toast } from "react-toastify";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Ensure carousel works
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
+import * as QRCode from "qrcode";
+import "react-toastify/dist/ReactToastify.css";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import Nav from "./Nav";
+import Footer from "./Footer";
 
-const About = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+// Import Leaflet marker images
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import shadowUrl from "leaflet/dist/images/marker-shadow.png";
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl,
+  iconUrl,
+  shadowUrl,
+});
+
+const LocationPicker = ({ position, setPosition }) => {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return position ? <Marker position={position}></Marker> : null;
+};
+
+const Menu = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [menuItems, setMenuItems] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [step, setStep] = useState(1);
+  const [position, setPosition] = useState(null);
 
+  const [formData, setFormData] = useState({
+    orderid: "",
+    orderDate: new Date().toLocaleDateString(),
+    name: "",
+    address: "",
+    pincode: "",
+    items: [],
+    paymentMethod: "Cash on Delivery",
+    deliveryperson: "",
+  });
+
+  // Fetch menu items
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail');
-    setIsLoggedIn(!!userEmail);
+    axios
+      .get("http://localhost:500/items")
+      .then((res) => setMenuItems(res.data))
+      .catch(() => toast.error("Failed to load menu items"));
   }, []);
 
+  // Fetch user name automatically
   useEffect(() => {
-    if (location.state?.toast) {
-      toast.info(location.state.toast);
-      window.history.replaceState({}, document.title);
+    const userEmail = localStorage.getItem("userEmail");
+    if (userEmail) {
+      axios
+        .get(`http://localhost:500/users/${userEmail}`)
+        .then((res) => {
+          setFormData((prev) => ({ ...prev, name: res.data.name }));
+        })
+        .catch(() => toast.error("Failed to fetch user name"));
     }
-  }, [location]);
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('userEmail');
-    toast.success("Logged out successfully!");
-    setIsLoggedIn(false);
-    navigate('/login');
+  // Cart helpers
+  const addToCart = (item, qty) => {
+    if (!qty || qty < 1) return;
+    setCart((prev) => {
+      const exists = prev.find((p) => p.itemid === item.itemid);
+      if (exists) {
+        return prev.map((p) =>
+          p.itemid === item.itemid ? { ...p, quantity: p.quantity + qty } : p
+        );
+      }
+      return [...prev, { ...item, quantity: qty }];
+    });
+    
+  };
+
+  const removeFromCart = (id) => {
+    setCart((prev) => prev.filter((item) => item.itemid !== id));
+  };
+
+  const updateQuantity = (id, qty) => {
+    if (qty < 1) return;
+    setCart((prev) =>
+      prev.map((item) =>
+        item.itemid === id ? { ...item, quantity: qty } : item
+      )
+    );
+  };
+
+  const getTotal = () =>
+    cart.reduce((acc, item) => acc + Number(item.price) * Number(item.quantity), 0);
+
+  const handleCheckout = () => {
+    if (cart.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+
+    const userEmail = localStorage.getItem("userEmail");
+    if (!userEmail) {
+      navigate("/login");
+      return;
+    }
+
+    axios
+      .get("http://localhost:500/next-order-id")
+      .then((res) => {
+        setFormData((prev) => ({
+          ...prev,
+          orderid: res.data.nextOrderId,
+          items: cart.map((c) => ({ item: c.itemname, quantity: c.quantity })),
+        }));
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setPosition([lat, lng]);
+            axios
+              .get(`https://nominatim.openstreetmap.org/reverse`, {
+                params: { lat, lon: lng, format: "json" },
+              })
+              .then((res) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  address: res.data.display_name || "",
+                  pincode: res.data.address?.postcode || prev.pincode,
+                }));
+              })
+              .catch(() => {});
+          });
+        }
+
+        setStep(2);
+      })
+      .catch(() => toast.error("Failed to prepare checkout"));
+  };
+
+  const handlePaymentSubmit = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+    if (!formData.address.trim()) {
+      toast.error("Please enter your address");
+      return;
+    }
+    if (!/^\d{6}$/.test(formData.pincode)) {
+      toast.error("Pincode must be exactly 6 digits");
+      return;
+    }
+
+    const orderData = { ...formData };
+
+    try {
+      const res = await axios.post("http://localhost:500/place-order", orderData);
+      toast.success(res?.data?.message || "Order placed successfully");
+
+      const receiptData = { ...orderData, orderid: res?.data?.orderid || orderData.orderid };
+
+      // Auto-download receipt
+      await downloadReceipt(receiptData);
+
+      // Reset cart & form (keep user name)
+      setCart([]);
+      setStep(1);
+      setFormData((prev) => ({
+        ...prev,
+        name: prev.name,
+        address: "",
+        pincode: "",
+        items: [],
+      }));
+    } catch {
+      toast.error("Order failed");
+    }
+  };
+
+  const downloadReceipt = async (receiptData) => {
+    const docHeight = 110 + receiptData.items.length * 10 + 40;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, docHeight] });
+
+    const logoImg = new Image();
+    logoImg.src = "/logo.png";
+    await new Promise((resolve) => { logoImg.onload = resolve; });
+
+    doc.addImage(logoImg, "PNG", 30, 1, 20, 20);
+    let y = 10;
+    doc.setFont("courier", "bold");
+    doc.setFontSize(12);
+    doc.text("CRAVORY RESTAURANT", 40, y, { align: "center" });
+    y += 6;
+
+    doc.setFontSize(10);
+    doc.setFont("courier", "normal");
+    doc.text(`Order No: ${receiptData.orderid}`, 5, y);
+    y += 5;
+    doc.text(`Date: ${receiptData.orderDate}`, 5, y);
+    y += 5;
+    doc.text(`Name: ${receiptData.name}`, 5, y);
+    y += 5;
+
+    const addressLines = doc.splitTextToSize(receiptData.address, 60);
+    doc.text("Address:", 5, y);
+    addressLines.forEach((line) => {
+      doc.text(line, 23, y);
+      y += 5;
+    });
+
+    doc.text(`Pincode: ${receiptData.pincode}`, 5, y);
+    y += 7;
+
+    doc.setFont("courier", "bold");
+    doc.text("Item          Qty  Price  Total", 5, y);
+    doc.setFont("courier", "normal");
+    y += 4;
+
+    let grandTotal = 0;
+    for (const itemObj of receiptData.items) {
+      const matched = menuItems.find((m) => m.itemname === itemObj.item);
+      const price = matched ? parseFloat(matched.price) : 0;
+      const qty = parseInt(itemObj.quantity);
+      const total = price * qty;
+      grandTotal += total;
+
+      const itemName =
+        itemObj.item.length > 12 ? itemObj.item.slice(0, 12) + "." : itemObj.item.padEnd(13, " ");
+      const qtyStr = String(qty).padStart(3, " ");
+      const priceStr = price.toFixed(2).padStart(6, " ");
+      const totalStr = total.toFixed(2).padStart(7, " ");
+      doc.text(`${itemName}${qtyStr} ${priceStr} ${totalStr}`, 3, y);
+      y += 5;
+    }
+
+    y += 2;
+    doc.text("------------------------------", 40, y, { align: "center" });
+    y += 6;
+    doc.setFont("courier", "bold");
+    doc.setFontSize(9);
+    doc.text(`Grand Total: INR ${grandTotal.toFixed(2)}`, 40, y, { align: "center" });
+
+    y += 8;
+    const qrText = `Order# ${receiptData.orderid}\nName: ${receiptData.name}`;
+    const qrData = await QRCode.toDataURL(qrText);
+    doc.addImage(qrData, "PNG", 25, y, 30, 30);
+    y += 35;
+
+    doc.setFontSize(10);
+    doc.setFont("courier", "bold");
+    doc.text("THANK YOU!", 40, y, { align: "center" });
+
+    doc.save(`Order-${receiptData.orderid}.pdf`);
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: "gray", overflowX: 'hidden' }}>
-      {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-        <div className="container-fluid px-4">
-          <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
-            <img src="/logo.png" alt="Logo" height="45" />
-            <span className="fw-bold fs-4">CRAVORY</span>
-          </Link>
-          <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
-              <li className="nav-item me-3"><Link className="nav-link fs-5" to="/">Home</Link></li>
-              <li className="nav-item me-3"><Link className="nav-link fs-5" to="/Menu">Menu</Link></li>
-              <li className="nav-item me-3"><Link className="nav-link fs-5" to="/About">About</Link></li>
-              <li className="nav-item"><Link className="nav-link fs-5" to="/Contact">Contact</Link></li>
-            </ul>
-            <div className="d-flex gap-2">
-              {!isLoggedIn ? (
-                <>
-                  <Link to="/register" className="btn btn-danger">Register</Link>
-                  <Link to="/login" className="btn btn-warning">Login</Link>
-                </>
+    <>
+      <Nav />
+      <div className="container mt-5 mb-5">
+        <ToastContainer position="top-center" autoClose={3000} />
+
+        {step === 1 && (
+          <div className="row">
+            <div className="col-md-8">
+              {menuItems.map((item) => (
+                <div key={item.itemid} className="d-flex border rounded p-2 mb-3">
+                  <img
+                    src={item.image}
+                    alt={item.itemname}
+                    style={{ width: "120px", height: "90px", objectFit: "cover", borderRadius: "5px" }}
+                  />
+                  <div className="ms-3 flex-grow-1">
+                    <h5 className="mb-1">{item.itemname}</h5>
+                    <p className="mb-1 text-muted">{item.description}</p>
+                    <strong>₹{item.price}</strong>
+                    <div className="mt-2 d-flex">
+                      <input type="number" min="1" defaultValue="1" className="form-control w-25 me-2" id={`qty-${item.itemid}`} />
+                      <button
+                        className="btn btn-primary"
+                        onClick={() =>
+                          addToCart(item, parseInt(document.getElementById(`qty-${item.itemid}`).value))
+                        }
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="col-md-4">
+              <h4>Your Order</h4>
+              {cart.length === 0 ? (
+                <p className="text-muted">Cart is empty</p>
               ) : (
-                <button className="btn btn-outline-light" onClick={handleLogout}>Logout</button>
+                <>
+                  <ul className="list-group mb-3">
+                    {cart.map((item) => (
+                      <li key={item.itemid} className="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                          <strong>{item.itemname}</strong>
+                          <div className="d-flex align-items-center mt-1">
+                            <span className="me-2">Qty:</span>
+                            <input
+                              type="number"
+                              value={item.quantity}
+                              min="1"
+                              onChange={(e) => updateQuantity(item.itemid, parseInt(e.target.value))}
+                              style={{ width: "60px" }}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-end">
+                          <div>₹{(item.price * item.quantity).toFixed(2)}</div>
+                          <button className="btn btn-sm btn-danger mt-1" onClick={() => removeFromCart(item.itemid)}>
+                            Remove
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="fw-bold mb-2">Total: ₹{getTotal().toFixed(2)}</div>
+                  <button className="btn btn-success w-100" onClick={handleCheckout}>
+                    Checkout
+                  </button>
+                </>
               )}
             </div>
           </div>
-        </div>
-      </nav>
+        )}
 
-      {/* Carousel */}
-      <div id="aboutCarousel" className="carousel slide container my-5" data-bs-ride="carousel">
-        <div className="carousel-indicators">
-          <button type="button" data-bs-target="#aboutCarousel" data-bs-slide-to="0" className="active" aria-current="true" aria-label="Slide 1"></button>
-          <button type="button" data-bs-target="#aboutCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-          <button type="button" data-bs-target="#aboutCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
-        </div>
-        <div className="carousel-inner text-center">
-          <div className="carousel-item active">
-            <img className="d-block mx-auto w-50 img-fluid" src="offer1.png" alt="Slide 1" />
+        {step === 2 && (
+          <div className="card p-4">
+            <h4 className="mb-3">Payment & Delivery Details</h4>
+            <input type="text" className="form-control mb-2" placeholder="Your Name" value={formData.name} readOnly />
+            <textarea className="form-control mb-2" placeholder="Delivery Address" rows="3" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
+            <input type="text" className="form-control mb-3" placeholder="Pincode (6 digits)" value={formData.pincode} maxLength={6} onChange={(e) => setFormData((p) => ({ ...p, pincode: e.target.value }))} />
+
+            <MapContainer center={position || [22.5726, 88.3639]} zoom={13} style={{ height: "300px", marginBottom: "10px" }}>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <LocationPicker position={position} setPosition={setPosition} />
+            </MapContainer>
+
+            <h5>Order Summary</h5>
+            <ul className="list-group mb-3">
+              {cart.map((item) => (
+                <li key={item.itemid} className="list-group-item d-flex justify-content-between">
+                  {item.itemname} x {item.quantity}
+                  <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="fw-bold mb-3">Grand Total: ₹{getTotal().toFixed(2)}</div>
+
+            <h5>Payment Method</h5>
+            <select className="form-control mb-3" value={formData.paymentMethod} onChange={(e) => setFormData((p) => ({ ...p, paymentMethod: e.target.value }))}>
+              <option>Cash on Delivery</option>
+              <option>UPI</option>
+            </select>
+
+            <div className="d-flex gap-2">
+              <button className="btn btn-primary w-50" onClick={handlePaymentSubmit}>
+                Pay & Place Order
+              </button>
+              <button className="btn btn-secondary w-50" onClick={() => setStep(1)}>
+                Back to Menu
+              </button>
+            </div>
           </div>
-          <div className="carousel-item">
-            <img className="d-block mx-auto w-50 img-fluid" src="offer2.jpeg" alt="Slide 2" />
-          </div>
-          <div className="carousel-item">
-            <img className="d-block mx-auto w-50 img-fluid" src="offer3.jpeg" alt="Slide 3" />
-          </div>
-        </div>
-        <button className="carousel-control-prev" type="button" data-bs-target="#aboutCarousel" data-bs-slide="prev">
-          <span className="carousel-control-prev-icon" aria-hidden="true"></span>
-          <span className="visually-hidden">Previous</span>
-        </button>
-        <button className="carousel-control-next" type="button" data-bs-target="#aboutCarousel" data-bs-slide="next">
-          <span className="carousel-control-next-icon" aria-hidden="true"></span>
-          <span className="visually-hidden">Next</span>
-        </button>
+        )}
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 
-export default About;
+export default Menu;
