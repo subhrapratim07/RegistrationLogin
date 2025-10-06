@@ -18,7 +18,12 @@ const loginUser = async (req, res) => {
       return res.status(401).send("Incorrect password or user not found!");
     }
 
-    res.send("Success");
+    // ✅ Send user info with role
+    res.json({
+      message: "Success",
+      email: user.email,
+      role: user.role || "user"
+    });
   } catch (err) {
     console.error("Login error:", err.message);
     res.status(500).send("Internal Server Error");

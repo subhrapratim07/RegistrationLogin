@@ -1,206 +1,285 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
-import jsPDF from 'jspdf';
-import * as QRCode from 'qrcode';
-import 'react-toastify/dist/ReactToastify.css';
-import Nav from './Nav';
-import Footer from './Footer';
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
+import * as QRCode from "qrcode";
+import "react-toastify/dist/ReactToastify.css";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import Nav from "./Nav";
+import Footer from "./Footer";
+
+// Import Leaflet marker images
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import shadowUrl from "leaflet/dist/images/marker-shadow.png";
+
+// Define custom default icon
+const defaultIcon = new L.Icon({
+  iconUrl: iconUrl,
+  iconRetinaUrl: iconRetinaUrl,
+  shadowUrl: shadowUrl,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+const LocationPicker = ({ position, setPosition, setFormData }) => {
+  useMapEvents({
+    click(e) {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      setPosition([lat, lng]);
+
+      // Fetch reverse geocode on click
+      axios
+        .get(`https://nominatim.openstreetmap.org/reverse`, {
+          params: { lat, lon: lng, format: "json" },
+        })
+        .then((res) => {
+          setFormData((prev) => ({
+            ...prev,
+            address: res.data.display_name || "",
+            pincode: res.data.address?.postcode || prev.pincode,
+          }));
+        })
+        .catch(() => {});
+    },
+  });
+
+  return position ? <Marker position={position} icon={defaultIcon}></Marker> : null;
+};
+
 
 const Order = () => {
   const navigate = useNavigate();
-  const [deliveryPersons, setDeliveryPersons] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [step, setStep] = useState(1);
+  const [position, setPosition] = useState(null);
+
   const [formData, setFormData] = useState({
-    orderid: '',
+    orderid: "",
     orderDate: new Date().toLocaleDateString(),
-    name: '',
-    address: '',
-    pincode: '',
-    items: [{ item: '', quantity: 1 }],
-    deliveryperson: ''
+    name: "",
+    address: "",
+    pincode: "",
+    items: [],
+    paymentMethod: "Cash on Delivery",
+    deliveryperson: "",
   });
 
-  const [menuItems, setMenuItems] = useState([]);
-  const [receiptData, setReceiptData] = useState(null);
-
+  // Fetch menu items
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail');
-    if (!userEmail) {
-      navigate('/home', { state: { toast: "Please login to place an order." } });
-      setTimeout(() => navigate('/Login'), 3000);
+    axios
+      .get("http://localhost:500/items")
+      .then((res) => setMenuItems(res.data))
+      .catch(() => toast.error("Failed to load menu items"));
+  }, []);
+
+  // Fetch user name automatically
+  useEffect(() => {
+    const userEmail = localStorage.getItem("userEmail");
+    if (userEmail) {
+      axios
+        .get(`http://localhost:500/users/${userEmail}`)
+        .then((res) => {
+          setFormData((prev) => ({ ...prev, name: res.data.name }));
+        })
+        .catch(() => toast.error("Failed to fetch user name"));
+    }
+  }, []);
+
+  // Cart helpers
+  const addToCart = (item, qty) => {
+    if (!qty || qty < 1) return;
+    setCart((prev) => {
+      const exists = prev.find((p) => p.itemid === item.itemid);
+      if (exists) {
+        return prev.map((p) =>
+          p.itemid === item.itemid ? { ...p, quantity: p.quantity + qty } : p
+        );
+      }
+      return [...prev, { ...item, quantity: qty }];
+    });
+  };
+
+  const removeFromCart = (id) => {
+    setCart((prev) => prev.filter((item) => item.itemid !== id));
+  };
+
+  const updateQuantity = (id, qty) => {
+    if (qty < 1) return;
+    setCart((prev) =>
+      prev.map((item) =>
+        item.itemid === id ? { ...item, quantity: qty } : item
+      )
+    );
+  };
+
+  const getTotal = () =>
+    cart.reduce((acc, item) => acc + Number(item.price) * Number(item.quantity), 0);
+
+  const handleCheckout = () => {
+    if (cart.length === 0) {
+      toast.error("Your cart is empty");
       return;
     }
 
-    axios.get(`http://localhost:500/users/${userEmail}`)
-      .then(res => {
-        setFormData(prev => ({
+    const userEmail = localStorage.getItem("userEmail");
+    if (!userEmail) {
+      navigate("/login");
+      return;
+    }
+
+    axios
+      .get("http://localhost:500/next-order-id")
+      .then((res) => {
+        setFormData((prev) => ({
           ...prev,
-          name: res.data.name,
+          orderid: res.data.nextOrderId,
+          items: cart.map((c) => ({ item: c.itemname, quantity: c.quantity })),
         }));
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition((pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            setPosition([lat, lng]);
+            axios
+              .get(`https://nominatim.openstreetmap.org/reverse`, {
+                params: { lat, lon: lng, format: "json" },
+              })
+              .then((res) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  address: res.data.display_name || "",
+                  pincode: res.data.address?.postcode || prev.pincode,
+                }));
+              })
+              .catch(() => {});
+          });
+        }
+
+        setStep(2);
       })
-      .catch(() => {
-        toast.error('Failed to fetch user info. Please login again.');
-        localStorage.removeItem('userEmail');
-        navigate('/Login');
-      });
-
-    axios.get('http://localhost:500/next-order-id')
-      .then(res => {
-        setFormData(prev => ({
-          ...prev,
-          orderid: res.data.nextOrderId
-        }));
-      })
-      .catch(() => {
-        toast.error('Failed to fetch next order number.');
-      });
-
-    axios.get('http://localhost:500/items')
-      .then(res => setMenuItems(res.data))
-      .catch(() => toast.error('Failed to fetch menu items.'));
-
-    axios.get('http://localhost:500/delivery_persons')
-      .then(res => setDeliveryPersons(res.data))
-      .catch(() => toast.error('Failed to fetch delivery persons.'));
-  }, [navigate]);
-
-  const handleChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+      .catch(() => toast.error("Failed to prepare checkout"));
   };
 
-  const handleItemChange = (index, field, value) => {
-    const updatedItems = [...formData.items];
-    updatedItems[index][field] = value;
-    setFormData(prev => ({
-      ...prev,
-      items: updatedItems
-    }));
+  const handlePaymentSubmit = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+    if (!formData.address.trim()) {
+      toast.error("Please enter your address");
+      return;
+    }
+    if (!/^\d{6}$/.test(formData.pincode)) {
+      toast.error("Pincode must be exactly 6 digits");
+      return;
+    }
+
+    const orderData = { ...formData };
+
+    try {
+      const res = await axios.post("http://localhost:500/place-order", orderData);
+      toast.success(res?.data?.message || "Order placed successfully");
+
+      const receiptData = { ...orderData, orderid: res?.data?.orderid || orderData.orderid };
+
+      // Auto-download receipt
+      await downloadReceipt(receiptData);
+
+      // Reset cart & form (keep user name)
+      setCart([]);
+      setStep(1);
+      setFormData((prev) => ({
+        ...prev,
+        name: prev.name,
+        address: "",
+        pincode: "",
+        items: [],
+      }));
+    } catch {
+      toast.error("Order failed");
+    }
   };
 
-  const addItem = () => {
-    setFormData(prev => ({
-      ...prev,
-      items: [...prev.items, { item: '', quantity: 1 }]
-    }));
-  };
-
-  const removeItem = (index) => {
-    const updatedItems = formData.items.filter((_, i) => i !== index);
-    setFormData(prev => ({
-      ...prev,
-      items: updatedItems
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    axios.post('http://localhost:500/place-order', formData)
-      .then(res => {
-        toast.success(res.data.message || "Order placed successfully!");
-        setReceiptData({ ...formData, orderid: res.data.orderid });
-        setFormData(prev => ({
-          ...prev,
-          orderid: res.data.orderid,
-          orderDate: new Date().toLocaleDateString(),
-          address: '',
-          pincode: '',
-          items: [{ item: '', quantity: 1 }],
-          deliveryperson: ''
-        }));
-      })
-      .catch(() => toast.error('Failed to place order.'));
-  };
-
-  const handleDownloadSlip = async () => {
-    if (!receiptData) return;
-
-    const docHeight = 100 + receiptData.items.length * 10 + 40;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [80, docHeight] });
+  const downloadReceipt = async (receiptData) => {
+    const docHeight = 110 + receiptData.items.length * 10 + 40;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, docHeight] });
 
     const logoImg = new Image();
-    logoImg.src = '/logo.png';
-    await new Promise(resolve => {
-      logoImg.onload = resolve;
-    });
+    logoImg.src = "/logo.png";
+    await new Promise((resolve) => { logoImg.onload = resolve; });
 
+    doc.addImage(logoImg, "PNG", 30, 1, 20, 20);
     let y = 20;
-    doc.addImage(logoImg, 'PNG', 30, 1, 20, 20);
-    doc.setFont('courier', 'bold');
+    doc.setFont("courier", "bold");
     doc.setFontSize(12);
-    doc.text('CRAVORY RESTAURANT', 40, y, { align: 'center' });
+    doc.text("CRAVORY RESTAURANT", 40, y, { align: "center" });
+    y += 10;
 
-    y += 5;
     doc.setFontSize(10);
-    doc.setFont('courier', 'normal');
-    doc.text('Order Receipt', 40, y, { align: 'center' });
-    y += 4;
-    doc.text('------------------------------', 40, y, { align: 'center' });
-    y += 6;
-
-    doc.text('Order No:', 5, y);
-    doc.text(receiptData.orderid, 75, y, { align: 'right' });
+    doc.setFont("courier", "normal");
+    doc.text(`Order No: ${receiptData.orderid}`, 5, y);
+    y += 5;
+    doc.text(`Date: ${receiptData.orderDate}`, 5, y);
+    y += 5;
+    doc.text(`Name: ${receiptData.name}`, 5, y);
     y += 5;
 
-    doc.text('Date:', 5, y);
-    doc.text(receiptData.orderDate, 75, y, { align: 'right' });
-    y += 7;
-
-    doc.text('Name:', 5, y);
-    doc.text(receiptData.name, 75, y, { align: 'right' });
-    y += 5;
-
-    const addressLines = doc.splitTextToSize(receiptData.address, 50);
-    doc.text('Address:', 5, y);
-    addressLines.forEach((line, i) => {
+    const addressLines = doc.splitTextToSize(receiptData.address, 60);
+    doc.text("Address:", 5, y);
+    addressLines.forEach((line) => {
       doc.text(line, 23, y);
       y += 5;
     });
 
-    doc.text('Pincode:', 5, y);
-    doc.text(receiptData.pincode, 75, y, { align: 'right' });
-    y += 9;
+    doc.text(`Pincode: ${receiptData.pincode}`, 5, y);
+    y += 7;
 
-    doc.setFont('courier', 'bold');
-    doc.text('Item          Qty   Price   Total', 5, y);
-    doc.setFont('courier', 'normal');
+    doc.setFont("courier", "bold");
+    doc.text("Item          Qty  Price  Total", 5, y);
+    doc.setFont("courier", "normal");
     y += 4;
 
     let grandTotal = 0;
     for (const itemObj of receiptData.items) {
-      const matched = menuItems.find(m => m.itemname === itemObj.item);
+      const matched = menuItems.find((m) => m.itemname === itemObj.item);
       const price = matched ? parseFloat(matched.price) : 0;
       const qty = parseInt(itemObj.quantity);
       const total = price * qty;
       grandTotal += total;
 
-      const itemName = itemObj.item.length > 14 ? itemObj.item.slice(0, 14) + '.' : itemObj.item.padEnd(15, ' ');
-      const qtyStr = String(qty).padStart(3, ' ');
-      const priceStr = price.toFixed(2).padStart(7, ' ');
-      const totalStr = total.toFixed(2).padStart(7, ' ');
+      const itemName =
+        itemObj.item.length > 12 ? itemObj.item.slice(0, 12) + "." : itemObj.item.padEnd(13, " ");
+      const qtyStr = String(qty).padStart(3, " ");
+      const priceStr = price.toFixed(2).padStart(6, " ");
+      const totalStr = total.toFixed(2).padStart(7, " ");
       doc.text(`${itemName}${qtyStr} ${priceStr} ${totalStr}`, 3, y);
       y += 5;
     }
 
     y += 2;
-    doc.text('------------------------------', 40, y, { align: 'center' });
+    doc.text("------------------------------", 40, y, { align: "center" });
     y += 6;
-    doc.setFont('courier', 'bold');
-    doc.setFontSize(8);
-    doc.text(`Grand Total: INR ${grandTotal.toFixed(2)}`, 40, y, { align: 'center' });
+    doc.setFont("courier", "bold");
+    doc.setFontSize(9);
+    doc.text(`Grand Total: INR ${grandTotal.toFixed(2)}`, 40, y, { align: "center" });
 
     y += 8;
     const qrText = `Order# ${receiptData.orderid}\nName: ${receiptData.name}`;
     const qrData = await QRCode.toDataURL(qrText);
-    doc.addImage(qrData, 'PNG', 25, y, 30, 30);
+    doc.addImage(qrData, "PNG", 25, y, 30, 30);
     y += 35;
 
     doc.setFontSize(10);
-    doc.setFont('courier', 'bold');
-    doc.text('THANK YOU!', 40, y, { align: 'center' });
+    doc.setFont("courier", "bold");
+    doc.text("THANK YOU!", 40, y, { align: "center" });
+
     doc.save(`Order-${receiptData.orderid}.pdf`);
   };
 
@@ -209,114 +288,117 @@ const Order = () => {
       <Nav />
       <div className="container mt-5 mb-5">
         <ToastContainer position="top-center" autoClose={3000} />
-        <h2 className="text-center mb-4">Place an Order</h2>
-        <div className="row justify-content-center">
-          <div className="col-md-8">
-            <form onSubmit={handleSubmit}>
-              <input type="text" className="form-control mb-3" value={formData.orderid} readOnly />
-              <input type="text" className="form-control mb-3" value={formData.orderDate} readOnly />
-              <input type="text" className="form-control mb-3" name="name" value={formData.name} required readOnly />
-              <textarea className="form-control mb-3" name="address" placeholder="Enter Address" value={formData.address} onChange={handleChange} required />
-              <input type="text" className="form-control mb-3" name="pincode" placeholder="Pincode" value={formData.pincode} onChange={handleChange} required />
-              <h5>Order Items</h5>
-              {formData.items.map((itemObj, index) => (
-                <div key={index} className="d-flex gap-2 mb-2">
-                  <select
-                    className="form-control"
-                    value={itemObj.item}
-                    onChange={(e) => handleItemChange(index, 'item', e.target.value)}
-                    required
-                  >
-                    <option value="">Select Item</option>
-                    {menuItems.map(menu => (
-                      <option key={menu.itemid} value={menu.itemname}>
-                        {menu.itemname} (₹{menu.price})
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    className="form-control"
-                    min="1"
-                    placeholder="Qty"
-                    value={itemObj.quantity}
-                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                    required
+
+        {step === 1 && (
+          <div className="row">
+            <div className="col-md-8">
+              {menuItems.map((item) => (
+                <div key={item.itemid} className="d-flex border rounded p-2 mb-3">
+                  <img
+                    src={item.image}
+                    alt={item.itemname}
+                    style={{ width: "120px", height: "90px", objectFit: "cover", borderRadius: "5px" }}
                   />
-                  {formData.items.length > 1 && (
-                    <button type="button" className="btn btn-danger" onClick={() => removeItem(index)}>X</button>
-                  )}
-                </div>
-              ))}
-              <div className="mb-3">
-                <button type="button" className="btn btn-secondary" onClick={addItem}>+ Add Another Item</button>
-              </div>
-              {formData.items.length > 0 && (
-                <div className="mt-4">
-                  <h5>Order Summary</h5>
-                  <table className="table table-bordered">
-                    <thead>
-                      <tr>
-                        <th>Item</th>
-                        <th>Qty</th>
-                        <th>Unit Price (₹)</th>
-                        <th>Total (₹)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {formData.items.map((itemObj, index) => {
-                        const matchedItem = menuItems.find(menu => menu.itemname === itemObj.item);
-                        const unitPrice = matchedItem ? parseFloat(matchedItem.price) : 0;
-                        const quantity = parseInt(itemObj.quantity) || 0;
-                        const total = unitPrice * quantity;
-                        return (
-                          <tr key={index}>
-                            <td>{itemObj.item}</td>
-                            <td>{quantity}</td>
-                            <td>{unitPrice.toFixed(2)}</td>
-                            <td>{total.toFixed(2)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <div className="text-end fw-bold">
-                    Grand Total: ₹{formData.items.reduce((acc, item) => {
-                      const matchedItem = menuItems.find(menu => menu.itemname === item.item);
-                      const price = matchedItem ? parseFloat(matchedItem.price) : 0;
-                      return acc + price * (parseInt(item.quantity) || 0);
-                    }, 0).toFixed(2)}
+                  <div className="ms-3 flex-grow-1">
+                    <h5 className="mb-1">{item.itemname}</h5>
+                    <p className="mb-1 text-muted">{item.description}</p>
+                    <strong>₹{item.price}</strong>
+                    <div className="mt-2 d-flex">
+                      <input type="number" min="1" defaultValue="1" className="form-control w-25 me-2" id={`qty-${item.itemid}`} />
+                      <button
+                        className="btn btn-primary"
+                        onClick={() =>
+                          addToCart(item, parseInt(document.getElementById(`qty-${item.itemid}`).value))
+                        }
+                      >
+                        Add
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            <div className="col-md-4">
+              <h4>Your Order</h4>
+              {cart.length === 0 ? (
+                <p className="text-muted">Cart is empty</p>
+              ) : (
+                <>
+                  <ul className="list-group mb-3">
+                    {cart.map((item) => (
+                      <li key={item.itemid} className="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                          <strong>{item.itemname}</strong>
+                          <div className="d-flex align-items-center mt-1">
+                            <span className="me-2">Qty:</span>
+                            <input
+                              type="number"
+                              value={item.quantity}
+                              min="1"
+                              onChange={(e) => updateQuantity(item.itemid, parseInt(e.target.value))}
+                              style={{ width: "60px" }}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-end">
+                          <div>₹{(item.price * item.quantity).toFixed(2)}</div>
+                          <button className="btn btn-sm btn-danger mt-1" onClick={() => removeFromCart(item.itemid)}>
+                            Remove
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="fw-bold mb-2">Total: ₹{getTotal().toFixed(2)}</div>
+                  <button className="btn btn-success w-100" onClick={handleCheckout}>
+                    Checkout
+                  </button>
+                </>
               )}
-              <select
-                className="form-control mb-3"
-                name="deliveryperson"
-                value={formData.deliveryperson}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select Delivery Person</option>
-                {deliveryPersons.map(dp => (
-                  <option key={dp.DeliveryPerson_ID} value={dp.Name}>
-                    {dp.Name} ({dp.Gender}) - {dp.AreaCode}
-                  </option>
-                ))}
-              </select>
-              <div className="d-flex gap-2">
-                <button type="submit" className="btn btn-primary w-50">Place Order</button>
-                <button type="button" className="btn btn-warning w-50" onClick={() => navigate('/Home')}>Cancel</button>
-              </div>
-            </form>
-            {receiptData && (
-              <div className="text-center mt-4">
-                <button className="btn btn-success" onClick={handleDownloadSlip}>
-                  Download Order Slip
-                </button>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {step === 2 && (
+          <div className="card p-4">
+            <h4 className="mb-3">Payment & Delivery Details</h4>
+            <input type="text" className="form-control mb-2" placeholder="Your Name" value={formData.name} readOnly />
+            <textarea className="form-control mb-2" placeholder="Delivery Address" rows="3" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
+            <input type="text" className="form-control mb-3" placeholder="Pincode (6 digits)" value={formData.pincode} maxLength={6} onChange={(e) => setFormData((p) => ({ ...p, pincode: e.target.value }))} />
+
+            <MapContainer center={position || [22.5726, 88.3639]} zoom={13} style={{ height: "300px", marginBottom: "10px" }}>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <LocationPicker position={position} setPosition={setPosition} setFormData={setFormData} />
+            </MapContainer>
+
+            <h5>Order Summary</h5>
+            <ul className="list-group mb-3">
+              {cart.map((item) => (
+                <li key={item.itemid} className="list-group-item d-flex justify-content-between">
+                  {item.itemname} x {item.quantity}
+                  <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="fw-bold mb-3">Grand Total: ₹{getTotal().toFixed(2)}</div>
+
+            <h5>Payment Method</h5>
+            <select className="form-control mb-3" value={formData.paymentMethod} onChange={(e) => setFormData((p) => ({ ...p, paymentMethod: e.target.value }))}>
+              <option>Cash on Delivery</option>
+              <option>UPI</option>
+            </select>
+
+            <div className="d-flex gap-2">
+              <button className="btn btn-primary w-50" onClick={handlePaymentSubmit}>
+                Pay & Place Order
+              </button>
+              <button className="btn btn-secondary w-50" onClick={() => setStep(1)}>
+                Back to Menu
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       <Footer />
     </>

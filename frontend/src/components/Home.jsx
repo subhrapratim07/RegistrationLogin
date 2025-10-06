@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { ToastContainer, toast } from "react-toastify";
@@ -8,6 +8,16 @@ import Nav from "./Nav";
 
 const Home = () => {
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [role, setRole] = useState("user");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("userRole");
+    const storedEmail = localStorage.getItem("userEmail");
+
+    if (storedRole) setRole(storedRole);
+    if (storedEmail) setIsLoggedIn(true);
+  }, []);
 
   const offerCards = [
     {
@@ -32,7 +42,6 @@ const Home = () => {
 
   return (
     <>
-      {/* ✅ Inline CSS */}
       <style>{`
         .hero-section {
           background-image: url('/homebg.png');
@@ -97,30 +106,44 @@ const Home = () => {
                 WELCOME TO CRAVORY
               </h1>
               <div className="mt-4 mb-4 text-white fw-bold fs-5 lh-base">
-                – a place where every <br/> dish is a story of
+                – a place where every <br /> dish is a story of
                 <br />
-                passion, flavor, and <br/>irresistible cravings.
+                passion, flavor, and <br />irresistible cravings.
               </div>
 
               <div className="mt-4 d-flex gap-3 flex-wrap">
-                <Link to="/Order" className="btn btn-secondary">
+                {/* ✅ Always visible */}
+                <Link to="/Order" className="btn btn-warning">
                   ORDER NOW!
                 </Link>
-                <Link to="/Item" className="btn btn-secondary">
-                  Add Item!
-                </Link>
-                <Link to="/Reports" className="btn btn-secondary">
-                  REPORTS!
-                </Link>
-                <Link to="/AssignDeliveryPerson" className="btn btn-secondary">
-                  AssignDeliveryPerson!
-                </Link>
-                <Link
-                  to="/DeliveryPersonForm"
-                  className="btn btn-outline-warning"
-                >
-                  DeliveryPerson
-                </Link>
+
+                {/* ✅ Book Table – Admin always, User only when logged in */}
+                {(role === "admin" || isLoggedIn) && (
+                  <Link to="/BookTable" className="btn btn-danger">
+                    BOOK TABLE
+                  </Link>
+                )}
+
+                {/* ✅ Only for admin */}
+                {role === "admin" && (
+                  <>
+                    <Link to="/Item" className="btn btn-secondary">
+                      Add Item!
+                    </Link>
+                    <Link to="/Reports" className="btn btn-secondary">
+                      REPORTS!
+                    </Link>
+                    <Link to="/AssignDeliveryPerson" className="btn btn-secondary">
+                      AssignDeliveryPerson!
+                    </Link>
+                    <Link
+                      to="/DeliveryPersonForm"
+                      className="btn btn-outline-warning"
+                    >
+                      DeliveryPerson
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

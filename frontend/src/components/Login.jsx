@@ -17,12 +17,13 @@ const Login = () => {
 
     axios.post('http://localhost:500/login', { email, password })
       .then(result => {
-        if (result.data === "Success") {
+        if (result.data.message === "Success") {
           toast.success('Login successful!');
-          localStorage.setItem('userEmail', email);
+          localStorage.setItem('userEmail', result.data.email);
+          localStorage.setItem('userRole', result.data.role); // ✅ Save role
           setTimeout(() => {
             navigate('/Home');
-          }, 3000);
+          }, 1000);
         }
       })
       .catch((error) => {
