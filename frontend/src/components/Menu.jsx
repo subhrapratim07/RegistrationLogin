@@ -19,7 +19,6 @@ const Menu = () => {
     <>
       <Nav />
       <div className="container text-center mt-4 mb-5">
-        <h2 className="mb-4 fw-bold">Cravory Menu</h2>
         <img
           src={isMobile ? "/mobile menu.png" : "/laptop menu.png"}
           alt="Cravory Menu"

@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import Footer from "./Footer";
 import Nav from "./Nav";
 
 const Home = () => {
   const [hoveredCard, setHoveredCard] = useState(null);
-  const [role, setRole] = useState("user");
+  const [role, setRole] = useState(null); // null when not logged in
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole");
@@ -39,6 +39,10 @@ const Home = () => {
       desc: "Rich, creamy, and packed with flavor – a must-have for pasta lovers.",
     },
   ];
+
+  const handleCardClick = () => {
+    navigate("/Order");
+  };
 
   return (
     <>
@@ -86,9 +90,8 @@ const Home = () => {
       `}</style>
 
       <Nav />
-      <ToastContainer position="top-center" autoClose={3000} />
 
-      {/* ✅ Hero Section */}
+      {/* Hero Section */}
       <div className="hero-section">
         <div className="hero-gradient" />
         <div
@@ -112,20 +115,20 @@ const Home = () => {
               </div>
 
               <div className="mt-4 d-flex gap-3 flex-wrap">
-                {/* ✅ Always visible */}
+                {/* Always show ORDER NOW */}
                 <Link to="/Order" className="btn btn-warning">
                   ORDER NOW!
                 </Link>
 
-                {/* ✅ Book Table – Admin always, User only when logged in */}
-                {(role === "admin" || isLoggedIn) && (
+                {/* Show BOOK TABLE only if a user or admin is logged in */}
+                {isLoggedIn && (
                   <Link to="/BookTable" className="btn btn-danger">
                     BOOK TABLE
                   </Link>
                 )}
 
-                {/* ✅ Only for admin */}
-                {role === "admin" && (
+                {/* Admin-only buttons */}
+                {isLoggedIn && role === "admin" && (
                   <>
                     <Link to="/Item" className="btn btn-secondary">
                       Add Item!
@@ -150,7 +153,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* ✅ Offers Section */}
+      {/* Offers Section */}
       <div className="offer-section">
         <div className="container py-5">
           <h2 className="text-center text-light mb-4 fw-bold">
@@ -163,7 +166,7 @@ const Home = () => {
                   className={`card h-100 shadow-sm offer-card ${
                     hoveredCard === item.id ? "hovered" : ""
                   }`}
-                  onClick={() => toast.info(`You clicked: ${item.title}`)}
+                  onClick={handleCardClick}
                   onMouseEnter={() => setHoveredCard(item.id)}
                   onMouseLeave={() => setHoveredCard(null)}
                 >
