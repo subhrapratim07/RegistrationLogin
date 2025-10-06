@@ -15,7 +15,7 @@ const Login = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    axios.post('http://localhost:500/login', { email, password })
+    axios.post('https://cravory-erq6.onrender.com/login', { email, password })
       .then(result => {
         if (result.data.message === "Success") {
           toast.success('Login successful!');

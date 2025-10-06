@@ -12,7 +12,7 @@ const Reports = () => {
 
   const fetchOrdersByPincode = async () => {
     try {
-      const response = await axios.get('http://localhost:500/api/reports/orders-by-pincode');
+      const response = await axios.get('https://cravory-erq6.onrender.com/api/reports/orders-by-pincode');
       setOrdersByPincode(response.data);
     } catch (error) {
       console.error('Error loading pincode data:', error);
@@ -30,7 +30,7 @@ const Reports = () => {
       const formattedEnd = new Date(endDate).toISOString().split('T')[0];
 
       const response = await axios.get(
-        `http://localhost:500/api/reports/orders-by-date?startDate=${formattedStart}&endDate=${formattedEnd}`
+        `https://cravory-erq6.onrender.com/api/reports/orders-by-date?startDate=${formattedStart}&endDate=${formattedEnd}`
       );
       setSelectedOrders(response.data);
     } catch (error) {

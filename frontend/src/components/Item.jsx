@@ -56,7 +56,7 @@ const Item = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    axios.post('http://localhost:500/items', { items })
+    axios.post('https://cravory-erq6.onrender.com/items', { items })
       .then(res => {
         toast.success(res.data.message || 'Items added successfully!');
         setItems([

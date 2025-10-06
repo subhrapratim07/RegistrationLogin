@@ -1,2 +1,3 @@
-# Ignore environment variables
+node_modules
+build
 .env

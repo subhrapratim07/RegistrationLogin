@@ -11,7 +11,7 @@ const AssignDeliveryPerson = () => {
   // Fetch orders without delivery person
   const fetchOrders = async () => {
     try {
-      const res = await axios.get("http://localhost:500/orders");
+      const res = await axios.get("https://cravory-erq6.onrender.com/orders");
       setOrders(res.data);
     } catch (err) {
       toast.error("Failed to fetch orders");
@@ -22,7 +22,7 @@ const AssignDeliveryPerson = () => {
   // Fetch all delivery persons
   const fetchDeliveryPersons = async () => {
     try {
-      const res = await axios.get("http://localhost:500/delivery_persons");
+      const res = await axios.get("https://cravory-erq6.onrender.com/delivery_persons");
       setDeliveryPersons(res.data);
     } catch (err) {
       toast.error("Failed to fetch delivery persons");
@@ -47,7 +47,7 @@ const AssignDeliveryPerson = () => {
     }
 
     try {
-      await axios.put(`http://localhost:500/orders/${orderid}/assign-delivery`, {
+      await axios.put(`https://cravory-erq6.onrender.com/orders/${orderid}/assign-delivery`, {
         deliveryperson: deliveryPerson
       });
       toast.success("Delivery person assigned successfully");

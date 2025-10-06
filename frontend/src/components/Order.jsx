@@ -73,7 +73,7 @@ const Order = () => {
   // Fetch menu items
   useEffect(() => {
     axios
-      .get("http://localhost:500/items")
+      .get("https://cravory-erq6.onrender.com/items")
       .then((res) => setMenuItems(res.data))
       .catch(() => toast.error("Failed to load menu items"));
   }, []);
@@ -83,7 +83,7 @@ const Order = () => {
     const userEmail = localStorage.getItem("userEmail");
     if (userEmail) {
       axios
-        .get(`http://localhost:500/users/${userEmail}`)
+        .get(`https://cravory-erq6.onrender.com/users/${userEmail}`)
         .then((res) => {
           setFormData((prev) => ({ ...prev, name: res.data.name }));
         })
@@ -134,7 +134,7 @@ const Order = () => {
     }
 
     axios
-      .get("http://localhost:500/next-order-id")
+      .get("https://cravory-erq6.onrender.com/next-order-id")
       .then((res) => {
         setFormData((prev) => ({
           ...prev,
@@ -184,7 +184,7 @@ const Order = () => {
     const orderData = { ...formData };
 
     try {
-      const res = await axios.post("http://localhost:500/place-order", orderData);
+      const res = await axios.post("https://cravory-erq6.onrender.com/place-order", orderData);
       toast.success(res?.data?.message || "Order placed successfully");
 
       const receiptData = { ...orderData, orderid: res?.data?.orderid || orderData.orderid };

@@ -29,7 +29,7 @@ const BookTable = () => {
       return;
     }
 
-    axios.get(`http://localhost:500/users/${userEmail}`)
+    axios.get(`https://cravory-erq6.onrender.com/users/${userEmail}`)
       .then(res => {
         if (res.data) {
           setFormData(prev => ({
@@ -116,7 +116,7 @@ const BookTable = () => {
     const snapshot = { ...formData };
 
     try {
-      const res = await axios.post('http://localhost:500/book-table', formData);
+      const res = await axios.post('https://cravory-erq6.onrender.com/book-table', formData);
       toast.success(res.data.message || "Booking Successful!");
 
       // Auto-generate PDF

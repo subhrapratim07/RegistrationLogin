@@ -18,7 +18,7 @@ const Register = () => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    axios.post('http://localhost:500/register', { name, email, phonenumber, password })
+    axios.post('https://cravory-erq6.onrender.com/register', { name, email, phonenumber, password })
       .then(result => {
         if (result.data === "Already registered") {
           toast.error("E-mail already registered! Please login.");
