@@ -1,6 +1,6 @@
 const pool = require('../db');
 
-// Get next order ID
+// Get next order, ID
 const getNextOrderId = async (req, res) => {
   try {
     const result = await pool.query(
