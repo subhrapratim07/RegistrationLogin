@@ -209,7 +209,7 @@ const Order = () => {
     const orderData = { ...formData };
 
     try {
-      const res = await axios.post("https://cravory-1.onrender.com/place-order", orderData);
+      const res = await axios.post("https://cravory-erq6.onrender.com/place-order", orderData);
       toast.success(res?.data?.message || "Order placed successfully");
 
       const receiptData = { ...orderData, orderid: res?.data?.orderid || orderData.orderid };
