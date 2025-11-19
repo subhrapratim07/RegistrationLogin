@@ -324,35 +324,7 @@ const Order = () => {
 
         {step === 1 && (
           <div className="row">
-            <div className="col-md-8">
-              {menuItems.map((item) => (
-                <div key={item.itemid} className="d-flex border rounded p-2 mb-3">
-                  <img
-                    src={item.image}
-                    alt={item.itemname}
-                    style={{ width: "120px", height: "90px", objectFit: "cover", borderRadius: "5px" }}
-                  />
-                  <div className="ms-3 flex-grow-1">
-                    <h5 className="mb-1">{item.itemname}</h5>
-                    <p className="mb-1 text-muted">{item.description}</p>
-                    <strong>₹{item.price}</strong>
-                    <div className="mt-2 d-flex">
-                      <input type="number" min="1" defaultValue="1" className="form-control w-25 me-2" id={`qty-${item.itemid}`} />
-                      <button
-                        className="btn btn-primary"
-                        onClick={() =>
-                          addToCart(item, parseInt(document.getElementById(`qty-${item.itemid}`).value))
-                        }
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="col-md-4">
+             <div className="col-md-4">
               <h4>Your Order</h4>
               {cart.length === 0 ? (
                 <p className="text-muted">Cart is empty</p>
@@ -390,6 +362,35 @@ const Order = () => {
                 </>
               )}
             </div>
+            <div className="col-md-8">
+              {menuItems.map((item) => (
+                <div key={item.itemid} className="d-flex border rounded p-2 mb-3">
+                  <img
+                    src={item.image}
+                    alt={item.itemname}
+                    style={{ width: "120px", height: "90px", objectFit: "cover", borderRadius: "5px" }}
+                  />
+                  <div className="ms-3 flex-grow-1">
+                    <h5 className="mb-1">{item.itemname}</h5>
+                    <p className="mb-1 text-muted">{item.description}</p>
+                    <strong>₹{item.price}</strong>
+                    <div className="mt-2 d-flex">
+                      <input type="number" min="1" defaultValue="1" className="form-control w-25 me-2" id={`qty-${item.itemid}`} />
+                      <button
+                        className="btn btn-primary"
+                        onClick={() =>
+                          addToCart(item, parseInt(document.getElementById(`qty-${item.itemid}`).value))
+                        }
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+           
           </div>
         )}
 
