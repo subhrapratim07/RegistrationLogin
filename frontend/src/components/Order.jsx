@@ -71,9 +71,10 @@ const Order = () => {
   const [step, setStep] = useState(1);
   const [position, setPosition] = useState(null);
 
+  // *** FIX APPLIED HERE: Changed date format to ISO standard (YYYY-MM-DD) ***
   const [formData, setFormData] = useState({
     orderid: "",
-    orderDate: new Date().toLocaleDateString(),
+    orderDate: new Date().toISOString().split('T')[0], // FIX: Use YYYY-MM-DD format
     name: "",
     address: "",
     pincode: "",
@@ -81,6 +82,7 @@ const Order = () => {
     paymentMethod: "Cash on Delivery",
     deliveryperson: "",
   });
+  // *************************************************************************
 
   // Fetch menu items
   useEffect(() => {
@@ -133,7 +135,7 @@ const Order = () => {
   const getTotal = () =>
     cart.reduce((acc, item) => acc + Number(item.price) * Number(item.quantity), 0);
 
-  // *** FIXED: Updated handleCheckout to be asynchronous and await location ***
+  // *** handleCheckout remains async (Fixed in previous steps) ***
   const handleCheckout = async () => {
     if (cart.length === 0) {
       toast.error("Your cart is empty");
@@ -189,7 +191,7 @@ const Order = () => {
       toast.error("Failed to prepare checkout. Please try again.");
     }
   };
-  // *** END OF FIXED handleCheckout ***
+  // *************************************************************************
 
   const handlePaymentSubmit = async () => {
     if (!formData.name.trim()) {
@@ -253,8 +255,12 @@ const Order = () => {
     doc.setFont("courier", "normal");
     doc.text(`Order No: ${receiptData.orderid}`, 5, y);
     y += 5;
+    
+    // NOTE: If you need D/M/Y format on the PDF, you'll need to reformat here.
+    // Otherwise, it will print the YYYY-MM-DD format.
     doc.text(`Date: ${receiptData.orderDate}`, 5, y);
     y += 5;
+    
     doc.text(`Name: ${receiptData.name}`, 5, y);
     y += 5;
 
@@ -398,7 +404,6 @@ const Order = () => {
               value={formData.address} 
               onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} 
             />
-            {/* *** FIXED: Updated Pincode Input for better mobile support *** */}
             <input 
               type="text" // Keep as text, but force numeric keyboard
               inputMode="numeric" 
@@ -412,7 +417,6 @@ const Order = () => {
                 setFormData((p) => ({ ...p, pincode: value }))
               }} 
             />
-            {/* *** END OF FIXED Pincode Input *** */}
 
             <MapContainer center={position || [22.5726, 88.3639]} zoom={13} style={{ height: "300px", marginBottom: "10px" }}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
