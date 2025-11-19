@@ -25,6 +25,18 @@ const defaultIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
+// Helper function to Promisify Geolocation
+const getGeolocation = () => {
+  return new Promise((resolve, reject) => {
+    if (navigator.geolocation) {
+      // Added a timeout to prevent indefinite waiting on slow mobile networks
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 }); 
+    } else {
+      reject(new Error("Geolocation not supported"));
+    }
+  });
+};
+
 const LocationPicker = ({ position, setPosition, setFormData }) => {
   useMapEvents({
     click(e) {
@@ -121,7 +133,8 @@ const Order = () => {
   const getTotal = () =>
     cart.reduce((acc, item) => acc + Number(item.price) * Number(item.quantity), 0);
 
-  const handleCheckout = () => {
+  // *** FIXED: Updated handleCheckout to be asynchronous and await location ***
+  const handleCheckout = async () => {
     if (cart.length === 0) {
       toast.error("Your cart is empty");
       return;
@@ -133,42 +146,54 @@ const Order = () => {
       return;
     }
 
-    axios
-      .get("https://cravory-erq6.onrender.com/next-order-id")
-      .then((res) => {
+    try {
+      // 1. Get next Order ID
+      const orderIdRes = await axios.get("https://cravory-erq6.onrender.com/next-order-id");
+      
+      // 2. Set initial form data (Order ID and items)
+      setFormData((prev) => ({
+        ...prev,
+        orderid: orderIdRes.data.nextOrderId,
+        items: cart.map((c) => ({ item: c.itemname, quantity: c.quantity })),
+      }));
+      
+      // 3. ATTEMPT to get Geolocation
+      try {
+        const pos = await getGeolocation(); // <--- WAIT HERE for location
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setPosition([lat, lng]);
+
+        // 4. Reverse Geocode
+        const geoRes = await axios.get(`https://nominatim.openstreetmap.org/reverse`, {
+          params: { lat, lon: lng, format: "json" },
+        });
+        
+        // 5. Update form data with Geocoded address/pincode
         setFormData((prev) => ({
           ...prev,
-          orderid: res.data.nextOrderId,
-          items: cart.map((c) => ({ item: c.itemname, quantity: c.quantity })),
+          address: geoRes.data.display_name || prev.address,
+          pincode: geoRes.data.address?.postcode || prev.pincode,
         }));
+        
+      } catch (e) {
+        // If location fails (denied, timeout, not supported), proceed anyway.
+        toast.warn("Location could not be auto-detected. Please enter the delivery address.");
+      }
+      
+      // 6. Move to Step 2 ONLY after all preparations are done
+      setStep(2);
 
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition((pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            setPosition([lat, lng]);
-            axios
-              .get(`https://nominatim.openstreetmap.org/reverse`, {
-                params: { lat, lon: lng, format: "json" },
-              })
-              .then((res) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  address: res.data.display_name || "",
-                  pincode: res.data.address?.postcode || prev.pincode,
-                }));
-              })
-              .catch(() => {});
-          });
-        }
-
-        setStep(2);
-      })
-      .catch(() => toast.error("Failed to prepare checkout"));
+    } catch (error) {
+      console.error("Checkout prep error:", error);
+      toast.error("Failed to prepare checkout. Please try again.");
+    }
   };
+  // *** END OF FIXED handleCheckout ***
 
   const handlePaymentSubmit = async () => {
     if (!formData.name.trim()) {
+ 
       toast.error("Please enter your name");
       return;
     }
@@ -202,12 +227,14 @@ const Order = () => {
         pincode: "",
         items: [],
       }));
-    } catch {
-      toast.error("Order failed");
+    } catch (error) {
+      console.error("Order submission failed:", error);
+      toast.error("Order failed. Please check your network connection.");
     }
   };
 
   const downloadReceipt = async (receiptData) => {
+    // ... (Your existing downloadReceipt function)
     const docHeight = 110 + receiptData.items.length * 10 + 40;
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [80, docHeight] });
 
@@ -364,8 +391,28 @@ const Order = () => {
           <div className="card p-4">
             <h4 className="mb-3">Payment & Delivery Details</h4>
             <input type="text" className="form-control mb-2" placeholder="Your Name" value={formData.name} readOnly />
-            <textarea className="form-control mb-2" placeholder="Delivery Address" rows="3" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
-            <input type="text" className="form-control mb-3" placeholder="Pincode (6 digits)" value={formData.pincode} maxLength={6} onChange={(e) => setFormData((p) => ({ ...p, pincode: e.target.value }))} />
+            <textarea 
+              className="form-control mb-2" 
+              placeholder="Delivery Address" 
+              rows="3" 
+              value={formData.address} 
+              onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} 
+            />
+            {/* *** FIXED: Updated Pincode Input for better mobile support *** */}
+            <input 
+              type="text" // Keep as text, but force numeric keyboard
+              inputMode="numeric" 
+              pattern="[0-9]*"
+              className="form-control mb-3" 
+              placeholder="Pincode (6 digits)" 
+              value={formData.pincode} 
+              maxLength={6} 
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, ''); // Ensure only digits are saved
+                setFormData((p) => ({ ...p, pincode: value }))
+              }} 
+            />
+            {/* *** END OF FIXED Pincode Input *** */}
 
             <MapContainer center={position || [22.5726, 88.3639]} zoom={13} style={{ height: "300px", marginBottom: "10px" }}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
