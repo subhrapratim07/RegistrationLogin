@@ -24,8 +24,9 @@ Cravory is a full-stack restaurant management system built with React and Node.j
 | Axios    | Sequelize |           | QRCode (for receipts) |
 | React-Router | CORS |           | Toastify (for alerts) |
 
-## 📁 Folder Structure
-
+## 📸 Demo
+![PetVibe AI Dashboard](Cravory-demo-screenshot.png)
+*The PetVibe AI interface featuring the "Understand Your Dog Better" dashboard.*
 
 ## 📦 Installation
 
