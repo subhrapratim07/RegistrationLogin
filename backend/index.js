@@ -26,6 +26,7 @@ app.use('/delivery_persons', deliveryPersonRoutes);
 app.use(bookTableRoutes);
 app.use(userRoutes);
 app.use('/api/reports', reportRoutes);
+app.get('/health', (req, res) => res.status(200).send('OK'));
 
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
